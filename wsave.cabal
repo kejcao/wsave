@@ -67,6 +67,7 @@ executable wsave
     build-depends:
         base ^>=4.17.2.1,
         lens >= 5.3.2,
+        optparse-applicative >= 0.18.1.0,
         wreq ^>=0.5.4.2
 
     -- Directories containing source files.
