@@ -1,11 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module URL where
+module Url where
 
 import Text.Parsec
 import Text.Parsec.String (Parser)
 
-data URL = URL
+data Url = Url
   { scheme   :: String
   , host     :: String
   , port     :: Maybe Int
@@ -15,19 +15,8 @@ data URL = URL
   }
   deriving (Show)
 
--- toString :: URL -> String
--- toString (URL scheme host port path query fragment) =
---   scheme
---     ++ "://"
---     ++ host
---     ++ maybe "" ((":" ++) . show) port
---     ++ "/"
---     ++ path
---     ++ maybe "" ("?" ++) query
---     ++ maybe "" ("#" ++) fragment
-
-toString :: URL -> String
-toString (URL scheme host port path query _) =
+toString :: Url -> String
+toString (Url scheme host port path query _) =
   scheme
     ++ "://"
     ++ host
@@ -36,9 +25,9 @@ toString (URL scheme host port path query _) =
     ++ path
     ++ maybe "" ("?" ++) query
 
-urlParser :: Parser URL
+urlParser :: Parser Url
 urlParser =
-  URL
+  Url
     <$> ((try (string "https") <|> string "http") <* string "://")
     <*> many1 (alphaNum <|> oneOf ".-")
     <*> optionally (read <$> (char ':' *> many1 digit))
@@ -48,5 +37,5 @@ urlParser =
   where
     optionally p = Just <$> p <|> return Nothing
 
-parseURL :: String -> Either ParseError URL
-parseURL = parse urlParser ""
+parseUrl :: String -> Either ParseError Url
+parseUrl = parse urlParser ""

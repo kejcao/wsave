@@ -6,9 +6,8 @@ import Control.Lens
 import Network.Wreq hiding (header)
 import Options.Applicative
 import System.Directory
--- import System.IO
 import qualified Data.ByteString.Lazy as B
-import qualified URL
+import qualified Url
 
 data Arguments = Arguments
   {url :: String}
@@ -19,8 +18,8 @@ parseArgs =
     <$> strOption
       ( long "url"
           <> short 'u'
-          <> metavar "URL"
-          <> help "URL of website to save"
+          <> metavar "Url"
+          <> help "Url of website to save"
       )
 
 main :: IO ()
@@ -30,9 +29,12 @@ main = run =<< execParser opts
       info
         (parseArgs <**> helper)
         ( fullDesc
-            <> progDesc "Save/mirror the URL website"
+            <> progDesc "Save/mirror the Url website"
             <> header "mirror a website"
         )
+
+-- saveAssets :: String -> IO ()
+-- saveAssets src = 
 
 save :: String -> IO ()
 save url = do
@@ -41,12 +43,12 @@ save url = do
 
 run :: Arguments -> IO ()
 run (Arguments s) = do
-  let host = URL.host url
+  let host = Url.host url
   createDirectory host
   setCurrentDirectory host
-  save (URL.toString url)
+  save (Url.toString url)
   where
     url =
-      case URL.parseURL s of
+      case Url.parseUrl s of
         Right v -> v
         Left e -> error (show e)
