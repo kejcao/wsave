@@ -4,27 +4,17 @@
 
 {-# OPTIONS_GHC -O2 #-}
 
--- Thanks https://github.com/bgamari/html-parse lol
--- | This is a performance-oriented HTML tokenizer aim at web-crawling
--- applications. It follows the HTML5 parsing specification quite closely,
--- so it behaves reasonable well on ill-formed documents from the open Web.
+-- Thanks https://github.com/bgamari/html-parse
 
 module Html
-    ( -- * Parsing
-      parseTokens
-    -- , parseTokensLazy
-    , token
-      -- * Types
-    , Token(..)
-    , TagName, AttrName, AttrValue
-    , Attr(..)
-      -- * Rendering, text canonicalization
-    -- , renderTokens
-    -- , renderToken
-    -- , renderAttrs
-    -- , renderAttr
-    -- , canonicalizeTokens
-    ) where
+  ( parseTokens
+  , recoverTokens
+  , renderToken
+  , token
+  , Token(..)
+  , TagName, AttrName, AttrValue
+  , Attr(..)
+  ) where
 
 import Data.Char hiding (isSpace)
 import Data.List (unfoldr)
@@ -35,7 +25,6 @@ import Control.Monad (guard)
 import Control.DeepSeq
 
 import Data.Attoparsec.Text
-import qualified Data.Attoparsec.Text.Lazy as AL
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
@@ -50,11 +39,7 @@ import Prelude hiding (take, takeWhile)
 
 -- | A tag name (e.g. @body@)
 type TagName   = Text
-
--- | An attribute name (e.g. @href@)
 type AttrName  = Text
-
--- | The value of an attribute
 type AttrValue = Text
 
 -- | An HTML token
@@ -362,22 +347,6 @@ doctype = do
     _ <- char '>'
     return $ Doctype content
 
--- -- | Parse a lazy list of tokens from strict 'Text'.
--- parseTokens :: Text -> [Token]
--- parseTokens = unfoldr f
---   where
---     f :: Text -> Maybe (Token, Text)
---     f t
---       | T.null t = Nothing
---       | otherwise =
---         case parse token t of
---             Done rest tok -> Just (tok, rest)
---             Partial cont  ->
---                 case cont mempty of
---                   Done rest tok -> Just (tok, rest)
---                   _             -> Nothing
---             _             -> Nothing
-
 parseTokens :: Text -> [(Text, Token)]
 parseTokens = unfoldr f
   where
@@ -392,54 +361,25 @@ parseTokens = unfoldr f
               Done rest tok -> Just (tok, rest)
               _ -> Nothing
 
--- -- | Parse a lazy list of tokens from lazy 'TL.Text'.
--- parseTokensLazy :: TL.Text -> [Token]
--- parseTokensLazy = unfoldr f
---   where
---     f :: TL.Text -> Maybe (Token, TL.Text)
---     f t
---       | TL.null t = Nothing
---       | otherwise =
---         case AL.parse token t of
---             AL.Done rest tok -> Just (tok, rest)
---             _                -> Nothing
+recoverTokens :: [(Text, Token)] -> Text
+recoverTokens l = foldl (<>) "" (map fst l)
 
--- -- | See 'renderToken'.
--- renderTokens :: [Token] -> TL.Text
--- renderTokens = mconcat . fmap renderToken
---
--- -- | (Somewhat) canonical string representation of 'Token'.
--- renderToken :: Token -> TL.Text
--- renderToken = TL.fromStrict . mconcat . \case
---     (TagOpen n [])         -> ["<", n, ">"]
---     (TagOpen n attrs)      -> ["<", n, " ", renderAttrs attrs, ">"]
---     (TagSelfClose n attrs) -> ["<", n, " ", renderAttrs attrs, " />"]
---     (TagClose n)           -> ["</", n, ">"]
---     (ContentChar c)        -> [T.singleton c]
---     (ContentText t)        -> [t]
---     (Comment builder)      -> ["<!--", TL.toStrict $ B.toLazyText builder, "-->"]
---     (Doctype t)            -> ["<!DOCTYPE", t, ">"]
+renderToken :: Token -> T.Text
+renderToken = mconcat . \case
+    (TagOpen n [])         -> ["<", n, ">"]
+    (TagOpen n attrs)      -> ["<", n, " ", renderAttrs attrs, ">"]
+    (TagSelfClose n attrs) -> ["<", n, " ", renderAttrs attrs, " />"]
+    (TagClose n)           -> ["</", n, ">"]
+    (ContentChar c)        -> [T.singleton c]
+    (ContentText t)        -> [t]
+    (Comment builder)      -> ["<!--", TL.toStrict $ B.toLazyText builder, "-->"]
+    (Doctype t)            -> ["<!DOCTYPE", t, ">"]
 
--- -- | See 'renderAttr'.
--- renderAttrs :: [Attr] -> Text
--- renderAttrs = T.unwords . fmap renderAttr . reverse
---
--- -- | Does not escape quotation in attribute values!
--- renderAttr :: Attr -> Text
--- renderAttr (Attr k v) = mconcat [k, "=\"", v, "\""]
+-- | See 'renderAttr'.
+renderAttrs :: [Attr] -> Text
+renderAttrs = T.unwords . fmap renderAttr . reverse
 
--- -- | Meld neighoring 'ContentChar' and 'ContentText'
--- -- constructors together and drops empty text elements.
--- canonicalizeTokens :: [Token] -> [Token]
--- canonicalizeTokens = filter (/= ContentText "") . meldTextTokens
+-- | Does not escape quotation in attribute values!
+renderAttr :: Attr -> Text
+renderAttr (Attr k v) = mconcat [k, "=\"", v, "\""]
 
--- meldTextTokens :: [Token] -> [Token]
--- meldTextTokens = concatTexts . fmap charToText
---   where
---     charToText (ContentChar c) = ContentText (T.singleton c)
---     charToText t = t
---
---     concatTexts = \case
---       (ContentText t : ContentText t' : ts) -> concatTexts $ ContentText (t <> t') : ts
---       (t : ts) -> t : concatTexts ts
---       [] -> []

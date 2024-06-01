@@ -10,20 +10,24 @@ data Url = Url
   , host     :: String
   , port     :: Maybe Int
   , path     :: String
-  , query    :: Maybe String
-  , fragment :: Maybe String
+  -- , query    :: Maybe String
+  -- , fragment :: Maybe String
   }
   deriving (Show)
 
+orient :: Url -> String -> Url
+orient url newPath
+  | head newPath == '/' = url {path = tail newPath}
+  | otherwise = url {path = path url ++ (if path url == "" || last (path url) == '/' then "" else "/") ++ newPath}
+
 toString :: Url -> String
-toString (Url scheme host port path query _) =
+toString (Url scheme host port path) =
   scheme
     ++ "://"
     ++ host
     ++ maybe "" ((":" ++) . show) port
     ++ "/"
     ++ path
-    ++ maybe "" ("?" ++) query
 
 urlParser :: Parser Url
 urlParser =
@@ -31,9 +35,7 @@ urlParser =
     <$> ((try (string "https") <|> string "http") <* string "://")
     <*> many1 (alphaNum <|> oneOf ".-")
     <*> optionally (read <$> (char ':' *> many1 digit))
-    <*> ((char '/' *> many (noneOf "?#")) <|> string "")
-    <*> optionally (char '?' *> many (noneOf "#"))
-    <*> optionally (char '#' *> many anyChar)
+    <*> ((char '/' *> many (noneOf "#")) <|> string "")
   where
     optionally p = Just <$> p <|> return Nothing
 

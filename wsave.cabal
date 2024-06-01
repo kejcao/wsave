@@ -74,6 +74,7 @@ executable wsave
         deepseq >= 1.4.8.0,
         bytestring >= 0.11.5.3,
         text >= 2.1.1,
+        filepath >= 1.4.2.2,
         wreq ^>=0.5.4.2
 
     -- Directories containing source files.
