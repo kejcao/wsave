@@ -53,8 +53,8 @@ attrValue (Html.Attr _ v) = v
 isValidUrl :: T.Text -> Bool
 isValidUrl url =
   case Url.parseUrl (T.unpack url) of
-    Right v -> True
-    Left  e -> False
+    Right _ -> True
+    Left  _ -> False
 
 saveAssets :: Url.Url -> T.Text -> IO T.Text
 saveAssets url src = do
