@@ -11,10 +11,10 @@ module Html
     renderToken,
     token,
     Token (..),
+    Attr (..),
     TagName,
     AttrName,
     AttrValue,
-    Attr (..),
   ) where
 
 import Control.Applicative
@@ -36,8 +36,8 @@ import Prelude hiding (take, takeWhile)
 
 -- Section numbers refer to W3C HTML 5.2 specification.
 
-type TagName = Text
-type AttrName = Text
+type TagName   = Text
+type AttrName  = Text
 type AttrValue = Text
 
 data Token
